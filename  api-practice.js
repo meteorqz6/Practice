@@ -30,10 +30,16 @@ db.set(id++, music3)
 // 전체 음악 조회
 app.get('/musics', function(req, res) {
     let musics = {}
-    db.forEach(function (value, key) {
-        musics[key] = value
-    })
-    res.json(musics)
+    if (db.size !== 0) {
+        db.forEach(function (value, key) {
+            musics[key] = value
+        })
+        res.json(musics)
+    } else {
+        res.status(404).json({
+            message : "조회할 음악이 없습니다."
+        })
+    }
 })
 
 // 개별 음악 조회 
@@ -42,12 +48,13 @@ app.get('/musics/:id', function(req, res) {
     id = parseInt(id)
 
     const music = db.get(id)
-    if( music == undefined) {
-        res.json({
+    // 해당 아이디의 음악이 있으면 
+    if( music ) {
+        res.json(music)
+    } else { // 해당 아이디의 음악이 없으면
+        res.status(404).json({
             message : "노래 정보를 찾을 수 없습니다."
         })
-    } else {
-        res.json(music)
     }
 })
 
@@ -55,11 +62,20 @@ app.get('/musics/:id', function(req, res) {
 app.use(express.json())
 app.post('/musics', (req, res) => {
     console.log(req.body)
+    const title = req.body.title
+    const singer = req.body.singer
+    const likeNum = req.body.likeNum
 
-    db.set(id++, req.body)
-    res.json({
+    if(title && singer && likeNum) {
+        db.set(id++, req.body)
+        res.json({
         message : `새로운 노래 ${db.get(id-1).title} 등록되었습니다.`
-    })
+        })
+    } else {
+        res.status(400).json({
+            message : "요청 값을 제대로 보내주세요."
+        })
+    }  
 })
 
 // 개별 음악 삭제
@@ -70,16 +86,15 @@ app. delete('/musics/:id', (req, res) => {
     let music = db.get(id)
     // const title = music.title
 
-    if( music == undefined ) {
-        
-        res.json({
-            message : '등록되어 있지 않은 노래입니다.'
-        })
-    } else {
+    if( music ) {
         const title = music.title
         db.delete(id)
         res.json({
             message : `${title} 삭제되었습니다.`
+        })
+    } else {
+        res.status(404).json({
+            message : '등록되어 있지 않은 노래입니다.'
         })
     }
 })

@@ -9,13 +9,29 @@ let id = 1
 // 로그인
 app.post('/login', (req, res) =>{
     console.log(req.body)
-    const id = req.body.id
-    const pwd = req.body.pwd
+    const { userId, password } = req.body
 
-    if(id && pwd) {
+    if(!userId || !password) {
+        return res.status(400).json({
+            message : "아이디와 비밀번호를 모두 입력해주세요."
+        })
+    }
+    let foundUser = null;
+    for( let [key, value] of db ) {
+        if(value.userId === userId && value.password === password) {
+            foundUser = value
+            break
+        }
+    }
 
-    } else{
-
+    if(foundUser){
+        return res.status(200).json({
+            message : `${foundUser.name}님 환영합니다.`
+        })
+    } else {
+        return res.status(401).json({
+            message : "아이디 또는 비밀번호가 잘못되었습니다."
+        })
     }
 })
 // 회원가입

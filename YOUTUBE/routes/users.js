@@ -1,17 +1,24 @@
-const express = require('express')
-const router = express.Router()
-const conn = require('../mariadb')
-const {body, param, validationResult} = require('express-validator')
+const express = require('express');
+const router = express.Router();
+const conn = require('../mariadb');
+const {body, param, validationResult} = require('express-validator');
 
-router.use(express.json())
+// jwt 모듈
+const jwt = require('jsonwebtoken');
+
+// dotenv 모듈
+const dotenv = require('dotenv');
+dotenv.config();
+
+router.use(express.json());
 
 const validate = (req, res, next) => {
-    const err = validationResult(req)
+    const err = validationResult(req);
 
     if(err.isEmpty()) {
-        return next()
+        return next();
     } else {
-        return res.status(400).json(err.array())
+        return res.status(400).json(err.array());
     }
 }
 
@@ -25,24 +32,37 @@ router.post(
     ],
     (req, res) => {
     
-        const {email, password} = req.body
+        const {email, password} = req.body;
 
-        let sql = `SELECT * FROM users WHERE email = ?`
+        let sql = `SELECT * FROM users WHERE email = ?`;
         conn.query(
             sql, email,
             function(err, results) {
                 if(err){
-                    console.log(err)
-                    return res.status(400).end()
+                    console.log(err);
+                    return res.status(400).end();
                 }
-                var loginUser = results[0]
+                var loginUser = results[0];
 
                 if(loginUser && loginUser.password == password) {
+                    // 토큰 발급
+                    const token = jwt.sign({
+                        email : loginUser.email,
+                        name : loginUser.name
+                    }, process.env.YOUTUBE_PRIVATE_KEY, {
+                        expiresIn : '30m',
+                        issuer : "yooseong"
+                    });
+
+                    res.cookie("token", token,{
+                        httpOnly : true
+                    });
+                    console.log(token);
                     res.status(200).json({
                         message : `${loginUser.name}님 로그인 되었습니다.`
                     })}
                 else {
-                    res.status(404).json({
+                    res.status(403).json({
                         message : "이메일 또는 비밀번호가 틀렸습니다."
                     })
                 }
